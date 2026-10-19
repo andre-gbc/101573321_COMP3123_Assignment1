@@ -93,6 +93,7 @@ Each employee stores a reference to the user who created it. The server takes th
 - Signup and login are limited to 10 requests per minute per IP address. Additional requests receive 429.
 - express-validator checks user and employee input.
 - Secrets are stored in environment variables, not in source code.
+- Rate-limit test: Sending more than 10 login requests within one minute returned 429 Too Many Requests.
 
 ## Logging
 
