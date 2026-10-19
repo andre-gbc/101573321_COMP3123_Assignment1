@@ -34,8 +34,28 @@ function checkValidation(req, res, next) {
   next();
 }
 
-function validId(id) {
-  return mongoose.isValidObjectId(id);
+async function checkOwnership(req, res, next) {
+  const id = req.params.eid || req.query.eid;
+
+  if (!mongoose.isValidObjectId(id)) {
+    return res.status(400).json({ message: "Invalid employee ID" });
+  }
+
+  try {
+    const employee = await Employee.findById(id);
+
+    if (!employee) {
+      return res.status(404).json({ message: "Employee not found" });
+    }
+
+    if (employee.user.toString() !== req.userId) {
+      return res.status(403).json({ message: "Access forbidden" });
+    }
+
+    next();
+  } catch (error) {
+    next(error);
+  }
 }
 
 router.get("/employees", async (req, res, next) => {
@@ -71,11 +91,7 @@ router.post(
   }
 );
 
-router.get("/employees/:eid", async (req, res, next) => {
-  if (!validId(req.params.eid)) {
-    return res.status(400).json({ message: "Invalid employee ID" });
-  }
-
+router.get("/employees/:eid", checkOwnership, async (req, res, next) => {
   try {
     const employee = await Employee.findOne({
       _id: req.params.eid,
@@ -94,13 +110,10 @@ router.get("/employees/:eid", async (req, res, next) => {
 
 router.put(
   "/employees/:eid",
+  checkOwnership,
   employeeValidation,
   checkValidation,
   async (req, res, next) => {
-    if (!validId(req.params.eid)) {
-      return res.status(400).json({ message: "Invalid employee ID" });
-    }
-
     try {
       const employee = await Employee.findOneAndUpdate(
         { _id: req.params.eid, user: req.userId },
@@ -127,16 +140,10 @@ router.put(
   }
 );
 
-router.delete("/employees", async (req, res, next) => {
-  const { eid } = req.query;
-
-  if (!validId(eid)) {
-    return res.status(400).json({ message: "Invalid employee ID" });
-  }
-
+router.delete("/employees", checkOwnership, async (req, res, next) => {
   try {
     const employee = await Employee.findOneAndDelete({
-      _id: eid,
+      _id: req.query.eid,
       user: req.userId
     });
 
