@@ -4,6 +4,7 @@ const express = require("express");
 const mongoose = require("mongoose");
 const helmet = require("helmet");
 const userRoutes = require("./routes/userRoutes");
+const employeeRoutes = require("./routes/employeeRoutes");
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -16,6 +17,7 @@ app.get("/health", (req, res) => {
 });
 
 app.use("/api/v1/user", userRoutes);
+app.use("/api/v1/emp", employeeRoutes);
 
 app.use((error, req, res, next) => {
   console.error("Request error:", error.message);

@@ -1,5 +1,6 @@
 const express = require("express");
 const bcrypt = require("bcryptjs");
+const jwt = require("jsonwebtoken");
 const { body, validationResult } = require("express-validator");
 const User = require("../models/User");
 
@@ -61,6 +62,57 @@ router.post(
         });
       }
 
+      next(error);
+    }
+  }
+);
+
+router.post(
+  "/login",
+  [
+    body("identifier").trim().notEmpty(),
+    body("password").notEmpty()
+  ],
+  async (req, res, next) => {
+    const errors = validationResult(req);
+
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        message: "Validation failed",
+        errors: errors.array().map((error) => ({
+          field: error.path,
+          message: error.msg
+        }))
+      });
+    }
+
+    try {
+      const { identifier, password } = req.body;
+
+      const user = await User.findOne({
+        $or: [
+          { username: identifier },
+          { email: identifier.toLowerCase() }
+        ]
+      });
+
+      if (!user || !(await bcrypt.compare(password, user.password))) {
+        return res.status(401).json({
+          message: "Invalid credentials"
+        });
+      }
+
+      const token = jwt.sign(
+        { userId: user._id.toString() },
+        process.env.JWT_SECRET,
+        { expiresIn: "1h" }
+      );
+
+      return res.status(200).json({
+        message: "Login successful",
+        token
+      });
+    } catch (error) {
       next(error);
     }
   }
